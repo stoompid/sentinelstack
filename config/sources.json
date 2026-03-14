@@ -1,0 +1,251 @@
+{
+  "version": "1.0",
+  "description": "SentinelStack data source configuration",
+  "sources": {
+    "osac": {
+      "name": "OSAC - Overseas Security Advisory Council",
+      "type": "rss",
+      "enabled": false,
+      "priority": 1,
+      "url": "https://www.osac.gov/Content/RSSFeed?region=0&contentType=1",
+      "refresh_interval_minutes": 15,
+      "notes": "DISABLED — feed URL returns 404 HTML as of 2026"
+    },
+    "reliefweb": {
+      "name": "ReliefWeb API",
+      "type": "api",
+      "enabled": false,
+      "priority": 2,
+      "base_url": "https://api.reliefweb.int/v1/reports",
+      "refresh_interval_minutes": 30,
+      "notes": "UN OCHA humanitarian reports — POST request with JSON payload"
+    },
+    "gnews": {
+      "name": "Google News Intelligence Feed",
+      "type": "rss",
+      "enabled": true,
+      "priority": 2,
+      "refresh_interval_minutes": 15,
+      "queries": [
+        "protest Dubai UAE",
+        "strike labor unrest UAE Emirates",
+        "security threat Dubai",
+        "protest Israel Tel Aviv",
+        "attack Israel Gaza",
+        "unrest Middle East",
+        "protest Saudi Arabia Riyadh",
+        "coup military unrest",
+        "protest China Beijing Shanghai",
+        "unrest Hong Kong",
+        "protest South Korea Seoul",
+        "attack Japan Tokyo",
+        "protest India Mumbai Bangalore",
+        "unrest Singapore",
+        "protest London UK",
+        "attack Europe terrorism",
+        "protest Brazil Sao Paulo",
+        "unrest Mexico City",
+        "earthquake tsunami Asia",
+        "hurricane flood emergency",
+        "travel warning evacuation",
+        "airport closure border emergency"
+      ]
+    },
+    "usgs": {
+      "name": "USGS Earthquake Hazards",
+      "type": "api",
+      "enabled": true,
+      "priority": 3,
+      "base_url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/",
+      "feed": "significant_week",
+      "refresh_interval_minutes": 15,
+      "notes": "Free GeoJSON feed — no API key required"
+    },
+    "nws": {
+      "name": "NOAA National Weather Service",
+      "type": "api",
+      "enabled": true,
+      "priority": 4,
+      "base_url": "https://api.weather.gov/alerts/active",
+      "refresh_interval_minutes": 10,
+      "params": {
+        "area": ["CA", "NY"],
+        "status": "actual",
+        "severity": ["Extreme", "Severe"]
+      },
+      "notes": "US weather alerts for watchlist states"
+    },
+    "gdacs": {
+      "name": "GDACS Global Disaster Alert",
+      "type": "rss",
+      "enabled": true,
+      "priority": 5,
+      "url": "https://www.gdacs.org/xml/rss.xml",
+      "refresh_interval_minutes": 30,
+      "notes": "Global natural disaster alerts with GeoRSS coordinates"
+    },
+    "regional_rss": {
+      "name": "Regional News RSS Feeds",
+      "type": "rss_bundle",
+      "enabled": true,
+      "priority": 7,
+      "refresh_interval_minutes": 20,
+      "feeds": {
+        "east_asia": [
+          {
+            "name": "South China Morning Post",
+            "url": "https://www.scmp.com/rss/91/feed",
+            "region": "East Asia",
+            "focus": ["China", "Hong Kong", "Taiwan"]
+          },
+          {
+            "name": "Japan Times",
+            "url": "https://www.japantimes.co.jp/feed/",
+            "region": "East Asia",
+            "focus": ["Japan"]
+          },
+          {
+            "name": "Korea Herald",
+            "url": "http://www.koreaherald.com/common/rss_xml.php?ct=102",
+            "region": "East Asia",
+            "focus": ["South Korea", "North Korea"]
+          },
+          {
+            "name": "Nikkei Asia",
+            "url": "https://asia.nikkei.com/rss/feed/nar",
+            "region": "East Asia",
+            "focus": ["Japan", "APAC Business"]
+          }
+        ],
+        "middle_east": [
+          {
+            "name": "Al Jazeera English",
+            "url": "https://www.aljazeera.com/xml/rss/all.xml",
+            "region": "Middle East",
+            "focus": ["Gulf States", "MENA"]
+          },
+          {
+            "name": "Times of Israel",
+            "url": "https://www.timesofisrael.com/feed/",
+            "region": "Middle East",
+            "focus": ["Israel", "Iran"]
+          },
+          {
+            "name": "Arab News",
+            "url": "https://www.arabnews.com/rss.xml",
+            "region": "Middle East",
+            "focus": ["Saudi Arabia", "Gulf States"]
+          },
+          {
+            "name": "Iran International",
+            "url": "https://www.iranintl.com/en/rss",
+            "region": "Middle East",
+            "focus": ["Iran"]
+          },
+          {
+            "name": "Gulf News",
+            "url": "https://gulfnews.com/rss/uae",
+            "region": "Middle East",
+            "focus": ["UAE", "Dubai"]
+          },
+          {
+            "name": "Middle East Eye",
+            "url": "https://www.middleeasteye.net/rss",
+            "region": "Middle East",
+            "focus": ["Middle East", "Gulf"]
+          },
+          {
+            "name": "The National UAE",
+            "url": "https://www.thenationalnews.com/arc/outboundfeeds/rss/",
+            "region": "Middle East",
+            "focus": ["UAE", "Dubai", "Abu Dhabi"]
+          }
+        ],
+        "latin_america": [
+          {
+            "name": "Reuters LATAM",
+            "url": "https://www.reutersagency.com/feed/?taxonomy=best-regions&post_tag=latin-america",
+            "region": "Latin America",
+            "focus": ["Brazil", "Mexico", "Regional"]
+          },
+          {
+            "name": "Buenos Aires Times",
+            "url": "https://www.batimes.com.ar/feed",
+            "region": "Latin America",
+            "focus": ["Argentina", "Southern Cone"]
+          },
+          {
+            "name": "Mexico News Daily",
+            "url": "https://mexiconewsdaily.com/feed/",
+            "region": "Latin America",
+            "focus": ["Mexico"]
+          },
+          {
+            "name": "Brazil Reports",
+            "url": "https://brazilreports.com/feed/",
+            "region": "Latin America",
+            "focus": ["Brazil"]
+          }
+        ],
+        "europe": [
+          {
+            "name": "BBC News Europe",
+            "url": "http://feeds.bbci.co.uk/news/world/europe/rss.xml",
+            "region": "Europe",
+            "focus": ["UK", "EU", "Regional"]
+          },
+          {
+            "name": "DW News",
+            "url": "https://rss.dw.com/rdf/rss-en-all",
+            "region": "Europe",
+            "focus": ["Germany", "EU"]
+          },
+          {
+            "name": "France 24 English",
+            "url": "https://www.france24.com/en/rss",
+            "region": "Europe",
+            "focus": ["France", "EU"]
+          },
+          {
+            "name": "Politico EU",
+            "url": "https://www.politico.eu/feed/",
+            "region": "Europe",
+            "focus": ["EU Policy", "Brussels"]
+          }
+        ]
+      }
+    },
+    "gdelt": {
+      "name": "GDELT Project",
+      "type": "api",
+      "enabled": true,
+      "priority": 8,
+      "base_url": "https://api.gdeltproject.org/api/v2/doc/doc",
+      "refresh_interval_minutes": 60,
+      "params": {
+        "query": "conflict OR unrest OR protest OR attack OR emergency",
+        "mode": "artlist",
+        "maxrecords": 100,
+        "format": "json"
+      },
+      "notes": "High volume - global event database"
+    }
+  },
+  "telegram": {
+    "enabled": false,
+    "notes": "Pluggable module - configure channels when ready",
+    "channels": []
+  },
+  "filters": {
+    "keywords_priority": [
+      "attack", "explosion", "shooting", "protest", "riot", "unrest",
+      "earthquake", "tsunami", "hurricane", "typhoon", "flood",
+      "coup", "assassination", "terrorism", "hostage", "evacuation",
+      "missile", "nuclear", "sanctions", "embargo", "travel warning",
+      "airport closure", "border closure", "curfew", "martial law"
+    ],
+    "keywords_exclude": [
+      "sports", "entertainment", "celebrity", "fashion", "recipe"
+    ]
+  }
+}
