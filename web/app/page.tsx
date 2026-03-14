@@ -16,8 +16,8 @@ import EventChart from "@/components/EventChart"
 import LiveFeed from "@/components/LiveFeed"
 import ReportWorkspace from "@/components/ReportWorkspace"
 
-const REFRESH_INTERVAL_MS = 30_000
-const POLL_INTERVAL_MS = 2_000
+const REFRESH_IDLE_MS = 15_000
+const REFRESH_ACTIVE_MS = 3_000
 
 export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -33,10 +33,19 @@ export default function DashboardPage() {
   const [reportsLoading, setReportsLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
-  const refreshRef = useRef<ReturnType<typeof setInterval>>()
-  const pollRef = useRef<ReturnType<typeof setInterval>>()
+  const refreshRef = useRef<ReturnType<typeof setTimeout>>()
+  const pipelineStatusRef = useRef<PipelineStatus | null>(null)
 
-  const refresh = useCallback(async () => {
+  const scheduleNext = useCallback((status: PipelineStatus | null) => {
+    clearTimeout(refreshRef.current)
+    const isRunning = status
+      ? Object.values(status).some(Boolean)
+      : false
+    const delay = isRunning ? REFRESH_ACTIVE_MS : REFRESH_IDLE_MS
+    refreshRef.current = setTimeout(doRefresh, delay)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const doRefresh = useCallback(async () => {
     try {
       const [a, r, s, c, h, ps] = await Promise.allSettled([
         api.getArticles(100),
@@ -51,57 +60,33 @@ export default function DashboardPage() {
       if (s.status === "fulfilled") setStats(s.value)
       if (c.status === "fulfilled") setChartData(c.value)
       if (h.status === "fulfilled") setHealth(h.value)
-      if (ps.status === "fulfilled") setPipelineStatus(ps.value)
+      const latestStatus = ps.status === "fulfilled" ? ps.value : null
+      if (ps.status === "fulfilled") {
+        setPipelineStatus(latestStatus)
+        pipelineStatusRef.current = latestStatus
+      }
       setLastRefresh(new Date())
+      scheduleNext(latestStatus ?? pipelineStatusRef.current)
     } catch (e) {
       console.error("Refresh error:", e)
+      scheduleNext(pipelineStatusRef.current)
     } finally {
       setArticlesLoading(false)
       setReportsLoading(false)
     }
-  }, [])
+  }, [scheduleNext])
 
-  // Poll pipeline status every 2s while any stage is running, then refresh data when done
-  const startPolling = useCallback((stage: string) => {
-    if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(async () => {
-      try {
-        const status = await api.getPipelineStatus()
-        setPipelineStatus(status)
-        const stageStatus = status[stage as keyof PipelineStatus]
-        if (stageStatus === "idle") {
-          clearInterval(pollRef.current)
-          pollRef.current = undefined
-          await refresh()
-        }
-      } catch (e) {
-        console.error("Poll error:", e)
-      }
-    }, POLL_INTERVAL_MS)
-  }, [refresh])
+  const refresh = useCallback(() => {
+    clearTimeout(refreshRef.current)
+    doRefresh()
+  }, [doRefresh])
 
   useEffect(() => {
-    refresh()
-    refreshRef.current = setInterval(refresh, REFRESH_INTERVAL_MS)
-    return () => {
-      clearInterval(refreshRef.current)
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [refresh])
+    doRefresh()
+    return () => clearTimeout(refreshRef.current)
+  }, [doRefresh])
 
   const flashReports = reports.filter((r) => r.tier === "FLASH")
-
-  const handlePipelineAction = useCallback(
-    async (stage: string, triggerFn: () => Promise<unknown>) => {
-      try {
-        await triggerFn()
-        startPolling(stage)
-      } catch (e) {
-        console.error(`Pipeline ${stage} trigger failed:`, e)
-      }
-    },
-    [startPolling]
-  )
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-primary">
@@ -132,15 +117,6 @@ export default function DashboardPage() {
             reports={reports}
             loading={reportsLoading}
             pipelineStatus={pipelineStatus}
-            onCollect={(source) =>
-              handlePipelineAction("collect", () => api.triggerCollect(source))
-            }
-            onAnalyze={() =>
-              handlePipelineAction("analyze", () => api.triggerAnalyze())
-            }
-            onWrite={(tier) =>
-              handlePipelineAction("write", () => api.triggerWrite(tier))
-            }
           />
         </div>
       </div>

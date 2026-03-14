@@ -53,7 +53,7 @@ def cli():
 @click.option(
     "--source",
     default="all",
-    type=click.Choice(["all", "un_news", "bbc", "usgs", "gdacs", "nws"], case_sensitive=False),
+    type=click.Choice(["all", "un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"], case_sensitive=False),
     show_default=True,
     help="Source to collect from.",
 )
@@ -65,7 +65,7 @@ def collect(source: str):
     sources_cfg = _load_sources_config()
 
     # Priority order
-    priority_order = ["un_news", "bbc", "usgs", "gdacs", "nws"]
+    priority_order = ["un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"]
     targets = priority_order if source == "all" else [source.lower()]
 
     table = Table(title="Collection Summary", show_header=True, header_style="bold")
@@ -169,7 +169,7 @@ def show(tier: str, limit: int):
 def health():
     """Check connectivity for all configured sources."""
     sources_cfg = _load_sources_config()
-    priority_order = ["un_news", "bbc", "usgs", "gdacs", "nws"]
+    priority_order = ["un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"]
 
     table = Table(title="Source Health", show_header=True, header_style="bold")
     table.add_column("Source")

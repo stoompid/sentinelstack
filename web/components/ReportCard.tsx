@@ -55,11 +55,7 @@ export default function ReportCard({ report }: ReportCardProps) {
         <Section label="SITUATION" text={report.situation} />
         <Section label="IMPACT" text={report.impact} />
         <Section label="ACTION" text={report.action} />
-        {report.distro && (
-          <div className="mt-1 px-2 py-1 rounded border border-bg-border bg-bg-secondary/40 text-xs font-mono text-text-dim">
-            DISTRO: <span className="text-text-secondary italic">{report.distro}</span>
-          </div>
-        )}
+        {/* distro removed from display */}
       </div>
 
       {/* Footer */}

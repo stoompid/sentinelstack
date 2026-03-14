@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Loader2, Play, Search, X, Sparkles } from "lucide-react"
+import { Loader2, Search, X, Sparkles, RefreshCw } from "lucide-react"
 import { clsx } from "clsx"
 import type { Report, PipelineStatus, ChatReport } from "@/lib/api"
 import { api, timeAgo } from "@/lib/api"
@@ -11,9 +11,6 @@ interface ReportWorkspaceProps {
   reports: Report[]
   loading: boolean
   pipelineStatus: PipelineStatus | null
-  onCollect: (source: string) => Promise<void>
-  onAnalyze: () => Promise<void>
-  onWrite: (tier: string) => Promise<void>
 }
 
 const TIERS = ["ALL", "FLASH", "PRIORITY", "ROUTINE"] as const
@@ -22,9 +19,6 @@ export default function ReportWorkspace({
   reports,
   loading,
   pipelineStatus,
-  onCollect,
-  onAnalyze,
-  onWrite,
 }: ReportWorkspaceProps) {
   const [activeTier, setActiveTier] = useState<string>("ALL")
   const [chatQuery, setChatQuery] = useState("")
@@ -40,8 +34,18 @@ export default function ReportWorkspace({
 
   const flashCount = reports.filter((r) => r.tier === "FLASH").length
 
-  const isRunning = (key: string) =>
-    pipelineStatus?.[key as keyof PipelineStatus] === "running"
+  const anyRunning =
+    pipelineStatus?.collect === "running" ||
+    pipelineStatus?.analyze === "running" ||
+    pipelineStatus?.write === "running"
+
+  const runningStage = pipelineStatus?.collect === "running"
+    ? "Collecting"
+    : pipelineStatus?.analyze === "running"
+    ? "Analyzing"
+    : pipelineStatus?.write === "running"
+    ? "Writing"
+    : null
 
   async function handleChat(e: React.FormEvent) {
     e.preventDefault()
@@ -99,23 +103,19 @@ export default function ReportWorkspace({
           ))}
         </div>
 
-        {/* Pipeline actions */}
-        <div className="flex gap-1.5 ml-auto">
-          <PipelineButton
-            label="Collect"
-            loading={isRunning("collect")}
-            onClick={() => onCollect("all")}
-          />
-          <PipelineButton
-            label="Analyze"
-            loading={isRunning("analyze")}
-            onClick={() => onAnalyze()}
-          />
-          <PipelineButton
-            label="Write"
-            loading={isRunning("write")}
-            onClick={() => onWrite("all")}
-          />
+        {/* Auto-pipeline status indicator */}
+        <div className="flex items-center gap-1.5 ml-auto text-xs font-mono">
+          {anyRunning ? (
+            <span className="flex items-center gap-1.5 text-accent-blue">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              {runningStage}...
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-text-dim">
+              <RefreshCw className="w-3 h-3" />
+              Auto-pipeline active
+            </span>
+          )}
         </div>
       </div>
 
@@ -244,11 +244,7 @@ function OnDemandReportCard({ report }: { report: ChatReport }) {
         <Section label="SITUATION" text={report.situation} />
         <Section label="IMPACT" text={report.impact} />
         <Section label="ACTION" text={report.action} />
-        {report.distro && (
-          <div className="mt-1 px-2 py-1 rounded border border-bg-border bg-bg-secondary/40 text-xs font-mono text-text-dim">
-            DISTRO: <span className="text-text-secondary italic">{report.distro}</span>
-          </div>
-        )}
+        {/* distro removed from display */}
       </div>
 
       {/* Footer */}
@@ -263,36 +259,6 @@ function OnDemandReportCard({ report }: { report: ChatReport }) {
         )}
       </div>
     </article>
-  )
-}
-
-function PipelineButton({
-  label,
-  loading,
-  onClick,
-}: {
-  label: string
-  loading: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className={clsx(
-        "flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded border transition-colors",
-        loading
-          ? "border-accent-blue/40 text-accent-blue bg-accent-blue-glow cursor-not-allowed"
-          : "border-bg-border text-text-muted hover:border-accent-blue hover:text-accent-blue hover:bg-accent-blue-glow"
-      )}
-    >
-      {loading ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
-      ) : (
-        <Play className="w-3 h-3" />
-      )}
-      {label}
-    </button>
   )
 }
 
@@ -311,13 +277,13 @@ function Section({ label, text }: { label: string; text: string }) {
 function EmptyState({ tier }: { tier: string }) {
   const msg =
     tier === "ALL"
-      ? "No reports yet. Run the pipeline or search for intel above."
+      ? "No reports yet. Pipeline runs automatically every 15 minutes."
       : `No ${tier} reports found.`
   return (
     <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
       <p className="text-text-muted text-sm">{msg}</p>
       <p className="text-text-dim text-xs font-mono">
-        Collect → Analyze → Write | or search for on-demand intel
+        Auto-pipeline: Collect → Analyze → Write | or search for on-demand intel
       </p>
     </div>
   )

@@ -13,6 +13,11 @@ from collector.base import Article, BaseSource, generate_article_id, generate_co
 
 logger = logging.getLogger(__name__)
 
+_HEADERS = {
+    "User-Agent": "SentinelStack/1.0 (GSOC threat intelligence; +https://github.com/sentinelstack)",
+    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+}
+
 
 class GenericRSSSource(BaseSource):
     """Generic RSS/Atom feed collector for any news source."""
@@ -20,7 +25,7 @@ class GenericRSSSource(BaseSource):
     def __init__(self, name: str, config: dict):
         self._name = name
         self.url = config["url"]
-        self.timeout = config.get("timeout_seconds", 10)
+        self.timeout = config.get("timeout_seconds", 15)
         self.default_category = config.get("default_category", "news")
 
     @property
@@ -29,7 +34,7 @@ class GenericRSSSource(BaseSource):
 
     def fetch(self) -> List[Article]:
         try:
-            resp = requests.get(self.url, timeout=self.timeout)
+            resp = requests.get(self.url, timeout=self.timeout, headers=_HEADERS)
             resp.raise_for_status()
             feed = feedparser.parse(resp.text)
         except Exception as e:
@@ -71,8 +76,9 @@ class GenericRSSSource(BaseSource):
 
     def health_check(self) -> bool:
         try:
-            resp = requests.head(self.url, timeout=self.timeout)
-            return resp.status_code < 500
+            resp = requests.get(self.url, timeout=self.timeout, headers=_HEADERS, stream=True)
+            resp.close()
+            return resp.status_code < 400
         except Exception:
             return False
 
@@ -97,7 +103,6 @@ class GenericRSSSource(BaseSource):
         return None
 
     def _extract_country(self, entry, title: str) -> str:
-        # Some feeds include country in tags
         for tag in entry.get("tags", []):
             term = tag.get("term", "").strip()
             if term and len(term) > 2:

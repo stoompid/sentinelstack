@@ -8,7 +8,7 @@ from typing import List
 
 from groq import Groq
 
-from analyst.llm import call_llm
+from analyst.llm import call_llm, LLMError
 from collector.store import get_conn
 
 logger = logging.getLogger(__name__)
@@ -39,11 +39,11 @@ def _assign_tier(severity: int) -> str:
 
 
 def is_noise(client: Groq, title: str, summary: str, country: str, categories: list) -> tuple[bool, str]:
-    prompt = f"""You are a GSOC analyst. Determine if this article is noise for physical security and geopolitical threat intelligence.
+    prompt = f"""You are a GSOC analyst at a major technology company. Determine if this article is noise for physical security, geopolitical threat intelligence, and tech industry operations.
 
-NOISE = routine politics, economics, sports, entertainment, minor weather, stock markets, product launches, celebrity news, or events with zero physical security implications.
+NOISE = routine domestic politics with no security implications, celebrity gossip, sports scores, product reviews, stock market fluctuations, minor local weather, lifestyle content, or events with zero physical security or operational impact on a global tech company.
 
-NOT NOISE = civil unrest, protests, riots, conflict escalation, terrorist attacks, coups, sanctions with operational impact, evacuations, natural disasters, seismic events, leadership travel risk.
+NOT NOISE = civil unrest, protests near tech campuses, riots, conflict escalation, terrorist attacks, coups, sanctions affecting tech supply chains or semiconductor manufacturing, evacuations, natural disasters, seismic events, travel disruptions, cyberattacks on infrastructure, threats to corporate campuses or data centers, geopolitical tensions affecting global tech operations.
 
 Title: {title}
 Summary: {summary[:300]}
@@ -58,13 +58,13 @@ Respond with JSON only:
 
 
 def score_severity(client: Groq, title: str, summary: str, country: str, categories: list) -> tuple[int, str, str]:
-    prompt = f"""You are a GSOC analyst scoring physical threat severity for executive protection and travel risk.
+    prompt = f"""You are a GSOC analyst at a major technology company scoring physical threat severity for employee safety, executive protection, travel risk, and tech industry operations.
 
 Score 1-10:
 1-3: Low — situational awareness only, no operational impact
-4-6: Moderate — monitor closely, may affect travel or operations
-7-8: High — recommend operational precautions, brief leadership
-9-10: Critical — immediate threat to personnel or operations, escalate now
+4-6: Moderate — monitor closely, may affect employee travel, office operations, or supply chain
+7-8: High — recommend operational precautions, brief security leadership, potential impact to company sites or personnel
+9-10: Critical — immediate threat to personnel, offices, or operations — escalate now
 
 Title: {title}
 Summary: {summary[:300]}
@@ -126,7 +126,11 @@ def run_analysis(api_key: str, dry_run: bool = False) -> dict:
                 conn.commit()
             continue
 
-        noise, noise_reason = is_noise(client, title, summary_text, country, categories)
+        try:
+            noise, noise_reason = is_noise(client, title, summary_text, country, categories)
+        except LLMError as e:
+            logger.warning(f"LLM error on noise check for {article_id}: {e} — skipping article")
+            continue
 
         if noise:
             summary["noise"] += 1
@@ -135,7 +139,11 @@ def run_analysis(api_key: str, dry_run: bool = False) -> dict:
                 conn.commit()
             continue
 
-        severity, tier, rationale = score_severity(client, title, summary_text, country, categories)
+        try:
+            severity, tier, rationale = score_severity(client, title, summary_text, country, categories)
+        except LLMError as e:
+            logger.warning(f"LLM error on severity score for {article_id}: {e} — skipping article")
+            continue
 
         scored = ScoredEvent(
             event_id=article_id,

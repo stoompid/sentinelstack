@@ -3,29 +3,65 @@
     "enabled": true,
     "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
     "default_category": "humanitarian",
-    "timeout_seconds": 10
+    "timeout_seconds": 15
   },
   "bbc": {
     "enabled": true,
     "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
     "default_category": "world news",
-    "timeout_seconds": 10
+    "timeout_seconds": 15
+  },
+  "aljazeera": {
+    "enabled": true,
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "default_category": "world news",
+    "timeout_seconds": 15
+  },
+  "reuters": {
+    "enabled": true,
+    "url": "https://news.google.com/rss/search?q=site:reuters.com+world&hl=en-US&gl=US&ceid=US:en",
+    "default_category": "world news",
+    "timeout_seconds": 15
+  },
+  "cnn": {
+    "enabled": true,
+    "url": "http://rss.cnn.com/rss/edition_world.rss",
+    "default_category": "world news",
+    "timeout_seconds": 15
+  },
+  "fox": {
+    "enabled": true,
+    "url": "https://moxie.foxnews.com/google-publisher/world.xml",
+    "default_category": "world news",
+    "timeout_seconds": 15
+  },
+  "abc": {
+    "enabled": true,
+    "url": "https://abcnews.go.com/abcnews/internationalheadlines",
+    "default_category": "world news",
+    "timeout_seconds": 15
+  },
+  "skynews": {
+    "enabled": true,
+    "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+    "default_category": "world news",
+    "timeout_seconds": 15
   },
   "usgs": {
     "enabled": true,
     "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson",
     "min_magnitude": 5.0,
-    "timeout_seconds": 10
+    "timeout_seconds": 15
   },
   "gdacs": {
     "enabled": true,
     "url": "https://www.gdacs.org/xml/rss.xml",
     "alert_levels": ["orange", "red"],
-    "timeout_seconds": 10
+    "timeout_seconds": 15
   },
   "nws": {
     "enabled": true,
-    "timeout_seconds": 10,
+    "timeout_seconds": 15,
     "min_severity": ["Extreme", "Severe"]
   }
 }

@@ -64,45 +64,30 @@ def _generate_report(client: Groq, events: list, tier: str) -> Report | None:
 
     now = datetime.now(tz=timezone.utc)
     today_str = now.strftime(f"%A, %B {now.day}, %Y")  # e.g. "Saturday, March 14, 2026"
+    local_time_utc = now.strftime("%H:%M UTC")
 
     # Tier 1=ROUTINE, Tier 2=PRIORITY, Tier 3=FLASH
     tier_num = {"FLASH": 3, "PRIORITY": 2, "ROUTINE": 1}.get(tier, 1)
 
-    prompt = f"""You are a crisis communications writer for a Global Security Operations Center (GSOC).
-Write a concise leadership intelligence report using ONLY the information provided.
+    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company with global operations. You support employee safety and business continuity across corporate offices, data centers, R&D labs, and supply chain partners worldwide.
 
-Use probability language where appropriate: "likely", "assessed", "appears", "may indicate".
-Never state uncertainties as confirmed facts. Do NOT include numerical severity scores or metric values in prose.
+Write a detailed leadership intelligence report using ONLY the information provided. Your audience is VP-level security leadership who need to make operational decisions about employee safety, site security, and business continuity.
 
-TODAY: {today_str}
+WRITING STANDARDS:
+- Use probability language: "likely", "assessed", "appears", "may indicate", "is believed to"
+- Never state uncertainties as confirmed facts
+- Do NOT include numerical severity scores in prose
+- Connect global events to potential second/third-order effects on tech company operations (offices, data centers, supply chain, employee travel, cloud infrastructure)
+- Include regional context: escalation patterns, historical precedent, or geopolitical dynamics
+- CRITICAL: Each section MUST meet the minimum sentence count — do NOT write single-sentence responses
+
+TODAY: {today_str}, {local_time_utc}
 ALERT TIER: {tier} (Tier {tier_num} of 3)
 EVENTS:
 {events_text}
 
-DISTRIBUTION MATRIX — select the best match based on incident type and tier:
-- Active Assailant T1: "FYSA - T1 (AMER/EMEA)"
-- Active Assailant T2: "ACTIVE ASSAILANT - T2 (Region - Type)"
-- Active Assailant T3: "ACTIVE ASSAILANT - T3 (Region - Type)" [requires SEC approval]
-- Bomb/Explosion T1: "FYSA - T1 (AMER/EMEA)"
-- Bomb/Explosion T2: "BOMB THREAT - T2 (Region - Type)"
-- Bomb/Explosion T3: "BOMB THREAT - T3 (Region - Type)" [requires SEC approval]
-- LE Activity Off-Site T1: "GENERAL SAFETY - T1 (AMER/EMEA)"
-- LE Activity Off-Site T2: "LE ACTIVITY - T2 (Region - Type)"
-- LE Activity Off-Site T3: "LE ACTIVITY - T3 (Region - Type)" [requires SEC approval]
-- Civil Unrest/Protest T1: "FYSA - T1 (AMER/EMEA)"
-- Civil Unrest/Protest T2: "CIVIL UNREST - T2 (Region - Type)"
-- Civil Unrest/Protest T3: "CIVIL UNREST - T3 (Region - Type)" [requires SEC approval]
-- Natural Disaster/Weather T1: "GENERAL SAFETY - T1 (AMER/EMEA)"
-- Natural Disaster/Weather T2: "NATURAL DISASTER - T2 (Region - Type)"
-- Natural Disaster/Weather T3: "NATURAL DISASTER - T3 (Region - Type)" [requires SEC approval]
-- Geopolitical/Conflict T1: "FYSA - T1 (AMER/EMEA)"
-- Geopolitical/Conflict T2: "FYSA - T2 (Region - Type)"
-- Geopolitical/Conflict T3: "GEOPOLITICAL - T3 (Region - Type)" [requires SEC approval]
-- General/Other T1: "GENERAL SAFETY - T1 (AMER/EMEA)"
-- General/Other T2: "GENERAL SAFETY - T2 (Region - Type)"
-
-Respond with JSON only:
-{{"title": "brief headline max 10 words", "situation": "On {today_str}, [what happened, where, when, scale — confirmed facts only, no severity numbers].", "impact": "Direct physical and operational effects on employee safety, office accessibility, power or internet, supply chain delays, or road closures only. Use probability language. Omit if no direct company impact.", "action": "1-2 sentences. Specific executable GSOC actions (e.g., initiate employee headcount, notify site security, continue monitoring local media for escalation).", "distro": "recommended distribution list from the matrix above"}}"""
+Respond with JSON only. IMPORTANT — follow the sentence counts exactly:
+{{"title": "brief headline max 10 words", "situation": "MUST be 2-3 sentences minimum. First sentence: On {today_str} at approximately {local_time_utc}, [what happened, where, confirmed facts with specific locations and scale]. Second sentence: provide regional context — what led to this event, escalation trajectory, prior incidents, political/military dynamics. Third sentence if needed: confirmed casualties, infrastructure damage, or government responses.", "impact": "MUST be 2-3 sentences minimum. Analyze direct and cascading effects on tech company operations. Assess threats to employee safety, office/data center accessibility, business travel risk, cloud and infrastructure dependencies, semiconductor and hardware supply chain exposure, and potential for protest or civil unrest near corporate campuses. Use probability language.", "action": "2-3 sentences. Specific executable GSOC actions with clear ownership. Examples: initiate employee accountability at [site], activate enhanced perimeter security, issue travel hold for [region], brief executive protection, coordinate with local LE liaison, pre-position crisis comms holding statement, escalate to CMT if [trigger]."}}"""
 
     result = _call_llm(client, prompt)
     if not result or "title" not in result:
@@ -115,7 +100,7 @@ Respond with JSON only:
         situation=result.get("situation", ""),
         impact=result.get("impact", ""),
         action=result.get("action", ""),
-        distro=result.get("distro", ""),
+        distro="",
         event_ids=",".join(e["event_id"] for e in events),
         generated_at=now,
     )

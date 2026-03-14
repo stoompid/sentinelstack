@@ -43,7 +43,7 @@ def _run_collect(source: str) -> None:
         with open(cfg_path) as f:
             sources_cfg = json.load(f)
 
-        priority_order = ["un_news", "bbc", "usgs", "gdacs", "nws"]
+        priority_order = ["un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"]
         targets = priority_order if source == "all" else [source.lower()]
 
         for name in targets:
@@ -97,7 +97,7 @@ def trigger_collect(
     state = get_pipeline_state()
     if state["collect"]:
         raise HTTPException(status_code=409, detail="Collection already running")
-    valid = {"all", "un_news", "bbc", "usgs", "gdacs", "nws"}
+    valid = {"all", "un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"}
     if source not in valid:
         raise HTTPException(status_code=400, detail=f"Invalid source. Must be one of: {valid}")
     background_tasks.add_task(_run_collect, source)

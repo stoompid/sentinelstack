@@ -93,13 +93,22 @@ def init_db() -> None:
             id               INTEGER PRIMARY KEY DEFAULT 1,
             collect_running  BOOLEAN DEFAULT FALSE,
             analyze_running  BOOLEAN DEFAULT FALSE,
-            write_running    BOOLEAN DEFAULT FALSE
+            write_running    BOOLEAN DEFAULT FALSE,
+            updated_at       TEXT
         )
     """)
 
+    # Add updated_at column if it doesn't exist (migration for existing DBs)
     cur.execute("""
-        INSERT INTO pipeline_state (id, collect_running, analyze_running, write_running)
-        VALUES (1, FALSE, FALSE, FALSE)
+        DO $$ BEGIN
+            ALTER TABLE pipeline_state ADD COLUMN updated_at TEXT;
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$;
+    """)
+
+    cur.execute("""
+        INSERT INTO pipeline_state (id, collect_running, analyze_running, write_running, updated_at)
+        VALUES (1, FALSE, FALSE, FALSE, NULL)
         ON CONFLICT (id) DO NOTHING
     """)
 
@@ -179,12 +188,18 @@ def get_pipeline_state() -> dict:
 
 def set_pipeline_state(stage: str, running: bool) -> None:
     """Mark a pipeline stage as running (True) or idle (False)."""
+    from datetime import datetime, timezone
+
     if stage not in _VALID_STAGES:
         raise ValueError(f"Invalid pipeline stage: {stage!r}. Must be one of {_VALID_STAGES}")
     col = f"{stage}_running"
+    now = datetime.now(tz=timezone.utc).isoformat() if running else None
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(f"UPDATE pipeline_state SET {col} = %s WHERE id = 1", (running,))
+    cur.execute(
+        f"UPDATE pipeline_state SET {col} = %s, updated_at = %s WHERE id = 1",
+        (running, now),
+    )
     conn.commit()
     cur.close()
     conn.close()

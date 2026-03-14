@@ -53,11 +53,17 @@ def _generate_report(query: str, search_results: list[dict]) -> dict:
     now = datetime.now(tz=timezone.utc)
     today_str = now.strftime(f"%A, %B {now.day}, %Y")
 
-    prompt = f"""You are a crisis communications writer for a Global Security Operations Center (GSOC).
-An analyst has requested an on-demand intelligence briefing. Using ONLY the search results below, write a concise leadership intelligence report.
+    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company with global operations. You support employee safety and business continuity across corporate offices, data centers, R&D labs, and supply chain partners worldwide.
 
-Use probability language where appropriate: "likely", "assessed", "appears", "may indicate".
-Never state uncertainties as confirmed facts. Do NOT include numerical severity scores in prose.
+An analyst has requested an on-demand intelligence briefing. Using ONLY the search results below, write a detailed leadership intelligence report. Your audience is VP-level security leadership who need to make operational decisions.
+
+WRITING STANDARDS:
+- Use probability language: "likely", "assessed", "appears", "may indicate", "is believed to"
+- Never state uncertainties as confirmed facts
+- Do NOT include numerical severity scores in prose
+- Connect events to potential second/third-order effects on tech company operations (offices, data centers, supply chain, employee travel, cloud infrastructure)
+- Include regional context: escalation patterns, historical precedent, or geopolitical dynamics
+- CRITICAL: Each section MUST meet the minimum sentence count — do NOT write single-sentence responses
 
 ANALYST QUERY: {query}
 TODAY: {today_str}
@@ -65,18 +71,8 @@ TODAY: {today_str}
 SEARCH RESULTS:
 {results_text}
 
-DISTRIBUTION MATRIX — select the best match:
-- Active Assailant: "ACTIVE ASSAILANT - T[tier] (Region - Type)"
-- Bomb/Explosion: "BOMB THREAT - T[tier] (Region - Type)"
-- LE Activity Off-Site: "LE ACTIVITY - T[tier] (Region - Type)"
-- Civil Unrest/Protest: "CIVIL UNREST - T[tier] (Region - Type)"
-- Natural Disaster/Weather: "NATURAL DISASTER - T[tier] (Region - Type)"
-- Geopolitical/Conflict: "GEOPOLITICAL - T[tier] (Region - Type)"
-- General/Other: "GENERAL SAFETY - T[tier] (Region - Type)"
-- Low-impact awareness: "FYSA - T1 (AMER/EMEA)"
-
-Respond with JSON only:
-{{"title": "brief headline max 10 words", "tier": "FLASH or PRIORITY or ROUTINE", "situation": "On {today_str}, [what happened, where, when, scale — confirmed facts only].", "impact": "Direct physical and operational effects on employee safety, office accessibility, travel. Use probability language. Omit if no direct company impact.", "action": "1-2 sentences. Specific executable GSOC actions.", "distro": "recommended distribution list from the matrix above"}}"""
+Respond with JSON only. IMPORTANT — follow the sentence counts exactly:
+{{"title": "brief headline max 10 words", "tier": "FLASH or PRIORITY or ROUTINE", "situation": "MUST be 3-5 sentences. First sentence: On {today_str}, [what happened, where, when, scale — confirmed facts only]. Following sentences: provide regional context — what led to this event, escalation trajectory, prior incidents, political/military dynamics. Include confirmed casualties, infrastructure damage, government responses, and strategic significance.", "impact": "MUST be 2-3 sentences. Analyze direct and cascading effects on tech company operations. Assess threats to employee safety, office/data center accessibility, business travel risk, cloud and infrastructure dependencies, semiconductor and hardware supply chain exposure, and potential for protest or civil unrest near corporate campuses. Use probability language.", "action": "MUST be 2-3 sentences. Specific executable GSOC actions with clear ownership. Examples: initiate employee accountability at [site], activate enhanced perimeter security, issue travel hold for [region], brief executive protection, coordinate with local LE liaison, pre-position crisis comms holding statement, escalate to CMT if [trigger]."}}"""
 
     completion = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -116,7 +112,7 @@ def chat_intel(req: ChatRequest):
         "situation": report.get("situation", ""),
         "impact": report.get("impact", ""),
         "action": report.get("action", ""),
-        "distro": report.get("distro", ""),
+        "distro": "",
         "generated_at": now.isoformat(),
         "sources": [r.get("source", "") for r in search_results if r.get("source")],
         "query": query,

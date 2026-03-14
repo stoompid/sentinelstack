@@ -24,6 +24,12 @@ interface SidebarProps {
 const SOURCE_LABELS: Record<string, string> = {
   un_news: "UN News",
   bbc: "BBC World",
+  aljazeera: "Al Jazeera",
+  reuters: "Reuters",
+  cnn: "CNN",
+  fox: "Fox News",
+  abc: "ABC News",
+  skynews: "Sky News",
   usgs: "USGS",
   gdacs: "GDACS",
   nws: "NWS",

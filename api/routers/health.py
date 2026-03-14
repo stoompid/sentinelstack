@@ -12,7 +12,7 @@ from collector.base import build_source
 router = APIRouter()
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "sources.json"
-PRIORITY_ORDER = ["un_news", "bbc", "usgs", "gdacs", "nws"]
+PRIORITY_ORDER = ["un_news", "bbc", "aljazeera", "reuters", "cnn", "fox", "abc", "skynews", "usgs", "gdacs", "nws"]
 
 
 def _check_one(name: str, cfg: dict) -> tuple[str, dict]:
