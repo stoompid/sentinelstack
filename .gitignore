@@ -1,9 +1,9 @@
-# Environment and secrets
+# Secrets
 config/.env
 .env
 *.env
 
-# Data files
+# Database
 data/
 *.db
 *.sqlite
@@ -36,3 +36,12 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Next.js
+web/.next/
+web/node_modules/
+web/out/
+web/.env.local
+
+# Railway / deployment
+.railway/

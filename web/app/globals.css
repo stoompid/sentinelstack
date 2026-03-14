@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    height: 100%;
+    background-color: #080a0f;
+    color: #e2e8f0;
+    font-family: var(--font-sans), Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f1219;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1e2535;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2d3748;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-bg-card border border-bg-border rounded-lg;
+    backdrop-filter: blur(8px);
+  }
+
+  .tier-badge-flash {
+    @apply text-tier-flash bg-tier-flash-dim border border-tier-flash-border
+           text-xs font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider;
+  }
+
+  .tier-badge-priority {
+    @apply text-tier-priority bg-tier-priority-dim border border-tier-priority-border
+           text-xs font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider;
+  }
+
+  .tier-badge-routine {
+    @apply text-tier-routine bg-tier-routine-dim border border-tier-routine-border
+           text-xs font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider;
+  }
+
+  .flash-glow {
+    animation: flash-pulse 2s ease-in-out infinite;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+  }
+
+  .btn-primary {
+    @apply bg-accent-blue hover:bg-accent-blue-dim text-white text-sm font-medium
+           px-3 py-1.5 rounded transition-colors duration-150 disabled:opacity-40
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply text-text-muted hover:text-text-primary hover:bg-bg-hover text-sm
+           px-3 py-1.5 rounded transition-colors duration-150;
+  }
+
+  .section-label {
+    @apply text-text-dim text-xs font-mono uppercase tracking-widest mb-2;
+  }
+}
+
+@keyframes flash-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.25);
+  }
+}

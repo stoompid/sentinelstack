@@ -1,39 +1,11 @@
-# SentinelStack - Collector Agent Dependencies
-
-# HTTP and API clients
-requests>=2.31.0
-httpx>=0.27.0
-
-# RSS/XML parsing
-feedparser>=6.0.10
-lxml>=5.1.0
-
-# Data storage
-sqlite-utils>=3.36
-
-# Environment and config
-python-dotenv>=1.0.0
-pydantic>=2.5.0
-pydantic-settings>=2.1.0
-
-# Date/time handling
-python-dateutil>=2.8.2
-
-# Logging
-structlog>=24.1.0
-
-# CLI
-click>=8.1.7
-rich>=13.7.0
-
-# Gemini API (for Analyst Agent later)
-google-generativeai>=0.4.0
-
-# Async support
-aiohttp>=3.9.0
-
-# Rate limiting
-ratelimit>=2.2.1
-
-# Dashboard
-streamlit>=1.32.0
+groq>=0.11
+feedparser>=6.0
+requests>=2.31
+click>=8.1
+rich>=13.0
+python-dateutil>=2.8
+python-dotenv>=1.0
+psycopg2-binary>=2.9
+fastapi>=0.111
+uvicorn[standard]>=0.29
+duckduckgo-search>=8.0

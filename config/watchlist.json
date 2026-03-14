@@ -1,0 +1,48 @@
+{
+  "regions": [
+    "Middle East",
+    "Southeast Asia",
+    "Eastern Europe",
+    "East Asia",
+    "Sub-Saharan Africa",
+    "South Asia"
+  ],
+  "countries": [
+    "Taiwan",
+    "Israel",
+    "Ukraine",
+    "Russia",
+    "South Korea",
+    "Philippines",
+    "Myanmar",
+    "Sudan",
+    "Haiti",
+    "Venezuela",
+    "Iran",
+    "Pakistan"
+  ],
+  "keywords": [
+    "protest",
+    "coup",
+    "sanctions",
+    "evacuation",
+    "martial law",
+    "hostage",
+    "attack",
+    "bombing",
+    "explosion",
+    "tsunami",
+    "eruption",
+    "earthquake",
+    "cyclone",
+    "flood",
+    "wildfire",
+    "armed conflict",
+    "civil war",
+    "ceasefire",
+    "airstrike",
+    "missile",
+    "kidnapping",
+    "assassination"
+  ]
+}

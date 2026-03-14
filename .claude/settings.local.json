@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(plan-ceo-review)",
+      "Skill(browse)"
+    ]
+  }
+}
