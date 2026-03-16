@@ -24,9 +24,9 @@ def _verify_key(api_key: str = Security(_api_key_header)) -> None:
 
 
 def _get_api_key() -> str:
-    key = os.getenv("GROQ_API_KEY", "")
+    key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY", "")
     if not key:
-        raise RuntimeError("GROQ_API_KEY not set")
+        raise RuntimeError("No LLM API key set (GROQ_API_KEY or GEMINI_API_KEY)")
     return key
 
 

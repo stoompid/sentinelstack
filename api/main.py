@@ -91,7 +91,12 @@ def _break_stale_locks() -> bool:
 
 
 def _run_full_pipeline() -> None:
-    """Run collect → analyze → write synchronously. Called from async wrapper."""
+    """Conveyor belt pipeline: for each source, collect → analyze → write immediately.
+
+    Instead of batching all collection, then all analysis, then all writing,
+    each source's articles flow through the full pipeline before moving to the next source.
+    This means reports appear on the dashboard incrementally as sources are processed.
+    """
     from collector.base import build_source
     from collector.store import init_db, bulk_insert, get_pipeline_state, set_pipeline_state
     from analyst.filter import run_analysis
@@ -107,53 +112,66 @@ def _run_full_pipeline() -> None:
 
     init_db()
 
-    # --- Collect ---
+    llm_key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY", "")
+    if not llm_key:
+        logger.warning("auto-pipeline skipped: no LLM API key set")
+        return
+
     try:
-        set_pipeline_state("collect", True)
         with open(CFG_PATH) as f:
             sources_cfg = json.load(f)
-
-        for name, cfg in sources_cfg.items():
-            if not cfg.get("enabled", True):
-                continue
-            try:
-                articles = build_source(name, cfg).fetch()
-                new, skipped = bulk_insert(articles)
-                logger.info(f"auto-collect [{name}]: {new} new, {skipped} skipped")
-            except Exception as e:
-                logger.error(f"auto-collect [{name}] failed: {e}")
     except Exception as e:
-        logger.error(f"auto-collect failed: {e}")
-    finally:
-        set_pipeline_state("collect", False)
+        logger.error(f"auto-pipeline: failed to load sources config: {e}")
+        return
 
-    # --- Analyze ---
-    try:
-        set_pipeline_state("analyze", True)
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        if groq_key:
-            summary = run_analysis(api_key=groq_key)
-            logger.info(f"auto-analyze summary: {summary}")
-        else:
-            logger.warning("auto-analyze skipped: GROQ_API_KEY not set")
-    except Exception as e:
-        logger.error(f"auto-analyze failed: {e}")
-    finally:
-        set_pipeline_state("analyze", False)
+    total_summary = {"collected": 0, "analyzed": 0, "noise": 0, "filtered_proximity": 0,
+                     "flash": 0, "priority": 0, "routine": 0, "reports": 0}
 
-    # --- Write ---
-    try:
-        set_pipeline_state("write", True)
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        if groq_key:
-            result = run_writer(api_key=groq_key, tier=None)
-            logger.info(f"auto-write result: {result}")
-        else:
-            logger.warning("auto-write skipped: GROQ_API_KEY not set")
-    except Exception as e:
-        logger.error(f"auto-write failed: {e}")
-    finally:
-        set_pipeline_state("write", False)
+    for name, cfg in sources_cfg.items():
+        if not cfg.get("enabled", True):
+            continue
+
+        # --- Collect this source ---
+        try:
+            set_pipeline_state("collect", True)
+            articles = build_source(name, cfg).fetch()
+            new, skipped = bulk_insert(articles)
+            total_summary["collected"] += new
+            logger.info(f"auto-collect [{name}]: {new} new, {skipped} skipped")
+        except Exception as e:
+            logger.error(f"auto-collect [{name}] failed: {e}")
+            continue
+        finally:
+            set_pipeline_state("collect", False)
+
+        if new == 0:
+            continue
+
+        # --- Analyze new articles ---
+        try:
+            set_pipeline_state("analyze", True)
+            analysis = run_analysis(api_key=llm_key)
+            for k in ("analyzed", "noise", "flash", "priority", "routine", "filtered_proximity"):
+                total_summary[k] = total_summary.get(k, 0) + analysis.get(k, 0)
+            logger.info(f"auto-analyze [{name}]: {analysis}")
+        except Exception as e:
+            logger.error(f"auto-analyze [{name}] failed: {e}")
+        finally:
+            set_pipeline_state("analyze", False)
+
+        # --- Write reports for any new scored events ---
+        try:
+            set_pipeline_state("write", True)
+            result = run_writer(api_key=llm_key, tier=None)
+            total_summary["reports"] += result.get("reports_generated", 0)
+            if result.get("reports_generated", 0) > 0:
+                logger.info(f"auto-write [{name}]: {result['reports_generated']} reports generated")
+        except Exception as e:
+            logger.error(f"auto-write [{name}] failed: {e}")
+        finally:
+            set_pipeline_state("write", False)
+
+    logger.info(f"Pipeline complete: {total_summary}")
 
 
 async def _auto_pipeline_loop() -> None:

@@ -10,12 +10,11 @@ from typing import List
 import io
 import sys
 
-from groq import Groq
 from rich.console import Console
 from rich.rule import Rule
 from rich.text import Text
 
-from analyst.llm import call_llm
+from analyst.llm import call_llm, configure_llm
 from collector.store import get_conn
 
 logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ else:
 
 console = Console(legacy_windows=False, file=_stdout)
 
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "gemini-2.5-flash"
 
 TIER_COLORS = {
     "FLASH": "bold red",
@@ -51,11 +50,11 @@ class Report:
     printed: bool = False
 
 
-def _call_llm(client: Groq, prompt: str) -> dict:
-    return call_llm(client, prompt, MODEL, temperature=0.3)
+def _call_llm(prompt: str) -> dict:
+    return call_llm(MODEL, prompt, temperature=0.3)
 
 
-def _generate_report(client: Groq, events: list, tier: str) -> Report | None:
+def _generate_report(events: list, tier: str) -> Report | None:
     events_text = "\n\n".join(
         f"Title: {e['title']}\nCountry: {e['country']}\nCategory: {e['category']}\n"
         f"Rationale: {e['gemini_rationale']}"
@@ -64,32 +63,30 @@ def _generate_report(client: Groq, events: list, tier: str) -> Report | None:
 
     now = datetime.now(tz=timezone.utc)
     today_str = now.strftime(f"%A, %B {now.day}, %Y")  # e.g. "Saturday, March 14, 2026"
-    local_time_utc = now.strftime("%H:%M UTC")
 
     # Tier 1=ROUTINE, Tier 2=PRIORITY, Tier 3=FLASH
     tier_num = {"FLASH": 3, "PRIORITY": 2, "ROUTINE": 1}.get(tier, 1)
 
-    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company with global operations. You support employee safety and business continuity across corporate offices, data centers, R&D labs, and supply chain partners worldwide.
+    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company. You support employee safety across corporate offices, data centers, and R&D labs worldwide.
 
-Write a detailed leadership intelligence report using ONLY the information provided. Your audience is VP-level security leadership who need to make operational decisions about employee safety, site security, and business continuity.
+Write a leadership intelligence report using ONLY the information provided. Your audience is VP-level security leadership who need to make decisions about employee safety and site security.
 
 WRITING STANDARDS:
-- Use probability language: "likely", "assessed", "appears", "may indicate", "is believed to"
+- Use probability language: "likely", "assessed", "appears", "may indicate"
 - Never state uncertainties as confirmed facts
 - Do NOT include numerical severity scores in prose
-- Connect global events to potential second/third-order effects on tech company operations (offices, data centers, supply chain, employee travel, cloud infrastructure)
-- Include regional context: escalation patterns, historical precedent, or geopolitical dynamics
-- CRITICAL: Each section MUST meet the minimum sentence count — do NOT write single-sentence responses
+- Be concise and direct — no filler or repetition
+- CRITICAL: Each section MUST meet the minimum sentence count
 
-TODAY: {today_str}, {local_time_utc}
+TODAY: {today_str}
 ALERT TIER: {tier} (Tier {tier_num} of 3)
 EVENTS:
 {events_text}
 
-Respond with JSON only. IMPORTANT — follow the sentence counts exactly:
-{{"title": "brief headline max 10 words", "situation": "MUST be 2-3 sentences minimum. First sentence: On {today_str} at approximately {local_time_utc}, [what happened, where, confirmed facts with specific locations and scale]. Second sentence: provide regional context — what led to this event, escalation trajectory, prior incidents, political/military dynamics. Third sentence if needed: confirmed casualties, infrastructure damage, or government responses.", "impact": "MUST be 2-3 sentences minimum. Analyze direct and cascading effects on tech company operations. Assess threats to employee safety, office/data center accessibility, business travel risk, cloud and infrastructure dependencies, semiconductor and hardware supply chain exposure, and potential for protest or civil unrest near corporate campuses. Use probability language.", "action": "2-3 sentences. Specific executable GSOC actions with clear ownership. Examples: initiate employee accountability at [site], activate enhanced perimeter security, issue travel hold for [region], brief executive protection, coordinate with local LE liaison, pre-position crisis comms holding statement, escalate to CMT if [trigger]."}}"""
+Respond with JSON only. Follow the sentence counts exactly:
+{{"title": "brief headline max 10 words", "situation": "MUST be 3-5 sentences. First sentence: On {today_str}, [what happened, where, scale — confirmed facts only]. Following sentences: regional context, escalation trajectory, prior incidents, confirmed casualties or infrastructure damage, government responses.", "impact": "MUST be 2-3 sentences. Focus ONLY on: (1) are employees in the affected area safe, (2) can they get to/from the office, (3) is travel to the region disrupted. Do NOT speculate about supply chains, semiconductors, or cloud infrastructure unless the event directly threatens them. Be specific about which offices or regions are affected.", "action": "MUST be 2-3 sentences. Specific executable GSOC actions: initiate employee accountability at [site], issue travel hold for [region], activate enhanced perimeter security, brief executive protection, coordinate with local LE, escalate to CMT if [trigger]."}}"""
 
-    result = _call_llm(client, prompt)
+    result = _call_llm(prompt)
     if not result or "title" not in result:
         return None
 
@@ -164,7 +161,7 @@ def _write_report(conn, report: Report) -> None:
 
 
 def run_writer(api_key: str, tier: str | None = None) -> dict:
-    client = Groq(api_key=api_key)
+    configure_llm(api_key)
     conn = get_conn()
     events = _load_unreported_events(conn, tier)
 
@@ -179,7 +176,7 @@ def run_writer(api_key: str, tier: str | None = None) -> dict:
     reports_generated = 0
     for key, group_iter in groupby(sorted(events, key=group_key), key=group_key):
         group = list(group_iter)
-        report = _generate_report(client, group, key[0])
+        report = _generate_report(group, key[0])
         if report is None:
             logger.warning(f"Failed to generate report for group {key}")
             continue

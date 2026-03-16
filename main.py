@@ -22,9 +22,9 @@ logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(mes
 
 
 def _get_api_key() -> str:
-    key = os.getenv("GROQ_API_KEY", "")
+    key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY", "")
     if not key:
-        console.print("[red]Error:[/red] GROQ_API_KEY not set in config/.env")
+        console.print("[red]Error:[/red] No LLM API key set (GROQ_API_KEY or GEMINI_API_KEY) in config/.env")
         sys.exit(1)
     return key
 
@@ -110,7 +110,7 @@ def analyze(dry_run: bool):
     if dry_run:
         console.print("[yellow]Dry-run mode — scores will not be saved.[/yellow]")
 
-    with console.status("Analyzing articles with Gemini..."):
+    with console.status("Analyzing articles..."):
         summary = run_analysis(api_key=api_key, dry_run=dry_run)
 
     table = Table(title="Analysis Summary", show_header=True, header_style="bold")

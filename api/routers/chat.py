@@ -1,8 +1,7 @@
-"""On-demand intelligence chatbot — web search + Groq report generation."""
+"""On-demand intelligence chatbot — web search + LLM report generation."""
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import uuid
@@ -33,14 +32,11 @@ def _search_web(query: str, max_results: int = 8) -> list[dict]:
 
 
 def _generate_report(query: str, search_results: list[dict]) -> dict:
-    """Feed search results to Groq and generate a GSOC-formatted report."""
-    from groq import Groq
+    """Feed search results to LLM and generate a GSOC-formatted report."""
+    from analyst.llm import call_llm, configure_llm
 
-    api_key = os.getenv("GROQ_API_KEY", "")
-    if not api_key:
-        raise RuntimeError("GROQ_API_KEY not set")
-
-    client = Groq(api_key=api_key)
+    # Ensure LLM is configured (idempotent)
+    configure_llm("")
 
     results_text = "\n\n".join(
         f"Title: {r.get('title', 'N/A')}\n"
@@ -53,17 +49,16 @@ def _generate_report(query: str, search_results: list[dict]) -> dict:
     now = datetime.now(tz=timezone.utc)
     today_str = now.strftime(f"%A, %B {now.day}, %Y")
 
-    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company with global operations. You support employee safety and business continuity across corporate offices, data centers, R&D labs, and supply chain partners worldwide.
+    prompt = f"""You are a senior crisis communications analyst for a Global Security Operations Center (GSOC) at a major technology company. You support employee safety across corporate offices, data centers, and R&D labs worldwide.
 
-An analyst has requested an on-demand intelligence briefing. Using ONLY the search results below, write a detailed leadership intelligence report. Your audience is VP-level security leadership who need to make operational decisions.
+An analyst has requested an on-demand intelligence briefing. Using ONLY the search results below, write a leadership intelligence report. Your audience is VP-level security leadership who need to make decisions about employee safety and site security.
 
 WRITING STANDARDS:
-- Use probability language: "likely", "assessed", "appears", "may indicate", "is believed to"
+- Use probability language: "likely", "assessed", "appears", "may indicate"
 - Never state uncertainties as confirmed facts
 - Do NOT include numerical severity scores in prose
-- Connect events to potential second/third-order effects on tech company operations (offices, data centers, supply chain, employee travel, cloud infrastructure)
-- Include regional context: escalation patterns, historical precedent, or geopolitical dynamics
-- CRITICAL: Each section MUST meet the minimum sentence count — do NOT write single-sentence responses
+- Be concise and direct — no filler or repetition
+- CRITICAL: Each section MUST meet the minimum sentence count
 
 ANALYST QUERY: {query}
 TODAY: {today_str}
@@ -71,16 +66,10 @@ TODAY: {today_str}
 SEARCH RESULTS:
 {results_text}
 
-Respond with JSON only. IMPORTANT — follow the sentence counts exactly:
-{{"title": "brief headline max 10 words", "tier": "FLASH or PRIORITY or ROUTINE", "situation": "MUST be 3-5 sentences. First sentence: On {today_str}, [what happened, where, when, scale — confirmed facts only]. Following sentences: provide regional context — what led to this event, escalation trajectory, prior incidents, political/military dynamics. Include confirmed casualties, infrastructure damage, government responses, and strategic significance.", "impact": "MUST be 2-3 sentences. Analyze direct and cascading effects on tech company operations. Assess threats to employee safety, office/data center accessibility, business travel risk, cloud and infrastructure dependencies, semiconductor and hardware supply chain exposure, and potential for protest or civil unrest near corporate campuses. Use probability language.", "action": "MUST be 2-3 sentences. Specific executable GSOC actions with clear ownership. Examples: initiate employee accountability at [site], activate enhanced perimeter security, issue travel hold for [region], brief executive protection, coordinate with local LE liaison, pre-position crisis comms holding statement, escalate to CMT if [trigger]."}}"""
+Respond with JSON only. Follow the sentence counts exactly:
+{{"title": "brief headline max 10 words", "tier": "FLASH or PRIORITY or ROUTINE", "situation": "MUST be 3-5 sentences. First sentence: On {today_str}, [what happened, where, scale — confirmed facts only]. Following sentences: regional context, escalation trajectory, prior incidents, confirmed casualties or infrastructure damage, government responses.", "impact": "MUST be 2-3 sentences. Focus ONLY on: (1) are employees in the affected area safe, (2) can they get to/from the office, (3) is travel to the region disrupted. Do NOT speculate about supply chains, semiconductors, or cloud infrastructure unless the event directly threatens them. Be specific about which offices or regions are affected.", "action": "MUST be 2-3 sentences. Specific executable GSOC actions: initiate employee accountability at [site], issue travel hold for [region], activate enhanced perimeter security, brief executive protection, coordinate with local LE, escalate to CMT if [trigger]."}}"""
 
-    completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-        response_format={"type": "json_object"},
-    )
-    return json.loads(completion.choices[0].message.content)
+    return call_llm("auto", prompt, temperature=0.3)
 
 
 @router.post("/chat")
